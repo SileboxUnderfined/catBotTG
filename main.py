@@ -2,6 +2,7 @@ import asyncio
 from aiogram import Bot, Dispatcher, types
 from io import BytesIO
 from os import environ
+from httpx import AsyncClient
 
 async def start_handler(event: types.Message):
     await event.answer(
@@ -9,7 +10,14 @@ async def start_handler(event: types.Message):
     )
 
 async def cat_handler(event: types.Message):
-    pass
+    async with AsyncClient(trust_env=True) as session:
+        result = await session.get(environ['IMAGES_URL'])
+        jsoned = result.json()
+        picture = await session.get(jsoned[0]['url'])
+        buffer = BytesIO()
+        buffer.write(picture.content)
+        buffer.seek(0)
+        await event.answer_photo(buffer,parse_mode=types.ParseMode.HTML)
 
 async def main():
     bot = Bot(token=environ['BOT_TOKEN'])
